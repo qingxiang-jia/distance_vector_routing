@@ -1,0 +1,76 @@
+// When I receive a DV from my neighbor v...
+	// Update myDV. vDV represents the incoming DV from my neighbor v.
+	// y represents any node in N.
+	// Before calling this method, you need to store this vDV into neighborDVs.
+	public void updateMyDV(HashMap<String, Float> vDV, String v)
+	{
+		Iterator<Entry<String, Float>> ivDV = vDV.entrySet().iterator();
+		boolean isMyDVchanged = false;
+		while(ivDV.hasNext())
+		{
+			Map.Entry<String, Float> entry = ivDV.next();
+			// Prepare variables.
+			String nextHop = v;
+			String y = entry.getKey();
+			Float newCost = myDV.get(v).minCost + entry.getValue();
+			// If I don't have this entry in myDV...
+			if(!myDV.containsKey(entry.getKey()))
+			{// Add this entry to myDV.
+				myDV.put(y, new MyDVentry(newCost, nextHop));
+				isMyDVchanged = true; // myDV is changed.
+				// Then recompute myDV.
+				// ??
+			}
+			else // I have this destination y in myDV.
+			{// is c(me->v)+d(v->y) smaller than c(me->y)?
+				if(myDV.get(v).minCost + entry.getValue() < myDV.get(y).minCost)
+				{// Then I need to update myDV i.e. newCost is the new minCost.
+					myDV.put(y, new MyDVentry(newCost, nextHop));
+					isMyDVchanged = true; // myDV is changed.
+				}// else do nothing.
+			}
+		}
+		// Is myDV changed? If so, I need to send myDV to my neighbors.
+		if(isMyDVchanged)
+		{// Since I updated myDV, I need to send this to my neighbors.
+			for(String neighbor: neighborList)
+			{// Send via UPD.
+				sendMyDV(neighbor);
+			}
+		}
+	}
+	
+	// When I detect that there is a change on cost to my neighbors...
+	// I need to update myDV.
+	// For each y in N:
+	// Update method: is c(me->v)+d(v->y) smaller than c(me->y)?
+	// Before run this method, you need to update myDV with that change, but you
+	// don't need to send myDV out, this method will handle this.
+	public void updateMyDV()
+	{
+		Iterator<Entry<String, MyDVentry>> imyDV = myDV.entrySet().iterator();
+		boolean isMyDVchanged = false;
+		while(imyDV.hasNext()) // For each y in N...
+		{// For v in neighborList, is c(me->v)+d(v->y) smaller than c(me->y)?
+			Map.Entry<String, MyDVentry> entry = imyDV.next();
+			String y = entry.getKey();
+			for(String v: neighborList)
+			{// is c(me->v)+d(v->y) smaller than c(me->y)?
+				if(myDV.get(v).minCost + neighborDVs.get(v).get(y) < entry.getValue().minCost)
+				{// The changed cost to my neighbor makes me need to update myDV.
+					Float minCost = myDV.get(v).minCost + neighborDVs.get(v).get(y);
+					String nextHop = v;
+					myDV.put(y, new MyDVentry(minCost, nextHop)); // Update myDV.
+					isMyDVchanged = true; // myDV is changed.
+				}
+			}
+		}
+		// Is myDV changed? If so I need to send myDV to my neighbors.
+		if(isMyDVchanged)
+		{// Since I updated myDV, I need to send this to my neighbors.
+			for(String neighbor: neighborList)
+			{// Send via UPD.
+				sendMyDV(neighbor);
+			}
+		}
+	}
